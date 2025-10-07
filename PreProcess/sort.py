@@ -4,8 +4,8 @@ import shutil
 from pathlib import Path
 
 # === Edit these two paths ===
-SRC_ROOT = Path("/media/arka/WD_Blue_2TB/Yuwei/Hep_bodipy__cellmask_test_20250821")
-DEST_DIR = Path("/media/arka/WD_Blue_2TB/Yuwei/collected_R_d0_d1_d3")
+SRC_ROOT = Path("/home/arka/Desktop/Yuwei/Raw/Hep_bodipy__cellmask_test_20250821")
+DEST_DIR = Path("/home/arka/Desktop/Yuwei/Raw/sorted")
 
 # Set to True to MOVE files (remove from source). False will COPY.
 DO_MOVE = False
