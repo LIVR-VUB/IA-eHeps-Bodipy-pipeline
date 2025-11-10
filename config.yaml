@@ -1,0 +1,31 @@
+# ==== Two-channel Cellpose pipeline driven by filename channels (dX) ====
+
+input_dir: "/scratch/brussel/vo/000/bvo00026/vsc11013/Projects/IA-Yuwei-Bodipy-Pipeline/Raw_data_sorted"
+output_dir: "/scratch/brussel/vo/000/bvo00026/vsc11013/Projects/IA-Yuwei-Bodipy-Pipeline/Cellpose_seg"
+
+z_strategy: "max"   # or "median"
+
+exclude_name_contains:
+  - "zstack"
+  - "orthogonal projection"
+  - "overlay"
+  - "overview"
+
+cellpose:
+  use_gpu: true
+
+channels:
+  d0:   # nuclei channel
+    filename_channel_id: 0
+    model: "/scratch/brussel/vo/000/bvo00026/vsc11013/Projects/IA-Yuwei-Bodipy-Pipeline/Models/cellpose/cpsam_eHeps_nuclei"
+    flow_threshold: null
+    cellprob_threshold: null
+
+  d3:   # cell body channel
+    filename_channel_id: 3
+    model: "/scratch/brussel/vo/000/bvo00026/vsc11013/Projects/IA-Yuwei-Bodipy-Pipeline/Models/cellpose/cpsam_eHeps_v3"
+    flow_threshold: 0.6     # e.g., 0.4
+    cellprob_threshold: -8 # e.g., 0.0
+
+save:
+  zstack: false
