@@ -1,7 +1,7 @@
 # ==== Two-channel Cellpose pipeline driven by filename channels (dX) ====
 
-input_dir: "/scratch/brussel/vo/000/bvo00026/vsc11013/Projects/IA-Yuwei-Bodipy-Pipeline/Raw_data_sorted"
-output_dir: "/scratch/brussel/vo/000/bvo00026/vsc11013/Projects/IA-Yuwei-Bodipy-Pipeline/Cellpose_seg"
+input_dir: "/home/arka/Desktop/IA-Yuwei-Bodipy-Pipeline/eHeps_bodipy"
+output_dir: "/home/arka/Desktop/IA-Yuwei-Bodipy-Pipeline/eHeps_bodipy"
 
 z_strategy: "max"   # or "median"
 
@@ -17,15 +17,15 @@ cellpose:
 channels:
   d0:   # nuclei channel
     filename_channel_id: 0
-    model: "/scratch/brussel/vo/000/bvo00026/vsc11013/Projects/IA-Yuwei-Bodipy-Pipeline/Models/cellpose/cpsam_eHeps_nuclei"
+    model: "/home/arka/Desktop/IA-Yuwei-Bodipy-Pipeline/Models/cellpose/cpsam_eHeps_nuclei"
     flow_threshold: null
     cellprob_threshold: null
 
   d3:   # cell body channel
     filename_channel_id: 3
-    model: "/scratch/brussel/vo/000/bvo00026/vsc11013/Projects/IA-Yuwei-Bodipy-Pipeline/Models/cellpose/cpsam_eHeps_v3"
-    flow_threshold: 0.6     # e.g., 0.4
-    cellprob_threshold: -8 # e.g., 0.0
+    model: "/home/arka/Desktop/IA-Yuwei-Bodipy-Pipeline/Models/cellpose/cpsam_eHeps_v3"
+    flow_threshold: 0.4     # e.g., 0.4
+    cellprob_threshold: 0.0 # e.g., 0.0
 
 save:
   zstack: false

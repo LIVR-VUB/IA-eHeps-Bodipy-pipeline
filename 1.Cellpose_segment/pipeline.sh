@@ -8,7 +8,7 @@ PROJ_ROOT="${SCRIPT_DIR}"
 # Paths inside your project
 SIF="${PROJ_ROOT}/singularity/cp2M_quant.sif"
 CFG="${PROJ_ROOT}/config.yaml"
-PY="${PROJ_ROOT}/cp_analysis.py"   # put the pipeline script here
+PY="${PROJ_ROOT}/cp_analysis_dual.py"   # put the pipeline script here
 
 # Quick checks (nice errors instead of silent failures)
 [[ -f "$SIF" ]] || { echo "ERROR: SIF not found: $SIF"; exit 1; }

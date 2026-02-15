@@ -65,22 +65,39 @@ def normalize01(img: np.ndarray) -> np.ndarray:
 def to_u16(img01: np.ndarray) -> np.ndarray:
     return (np.clip(img01, 0.0, 1.0) * 65535.0 + 0.5).astype(np.uint16)
 
-def run_cellpose(img2d: np.ndarray, model_identifier: str | None, use_gpu: bool,
-                 flow_threshold: float | None, cellprob_threshold: float | None) -> np.ndarray:
+def run_cellpose(img: np.ndarray, model_identifier: str | None, use_gpu: bool,
+                 flow_threshold: float | None, cellprob_threshold: float | None,
+                 channels: list | None = None) -> np.ndarray:
+    """
+    Run Cellpose.
+    img: 2D (Y,X) or 3D (C,Y,X) or (Y,X,C) depending on how it's constructed.
+         If using channels, Cellpose typically expects (Y,X) + channels=[0,0] for gray,
+         or (Y,X,C) + channels=[1,2] for Cytoplasm+Nuclei.
+    """
     gpu_ok = bool(use_gpu and torch.cuda.is_available())
-    mdl = models.CellposeModel(model_type=model_identifier, gpu=gpu_ok) if model_identifier else models.CellposeModel(gpu=gpu_ok)
+    # Cellpose v4.0.1+: use 'pretrained_model' instead of deprecated 'model_type'
+    mdl = models.CellposeModel(pretrained_model=model_identifier, gpu=gpu_ok) if model_identifier else models.CellposeModel(gpu=gpu_ok)
     kwargs = {}
     if flow_threshold is not None:
         kwargs["flow_threshold"] = float(flow_threshold)
     if cellprob_threshold is not None:
         kwargs["cellprob_threshold"] = float(cellprob_threshold)
-    masks, *_ = mdl.eval(img2d, **kwargs)
+    if channels is not None:
+        kwargs["channels"] = channels
+
+    # Cellpose expects image in (Y, X) or (Y, X, C).
+    # If we have (C, Y, X) inputs, transpose to (Y, X, C).
+    img_input = img
+    if img.ndim == 3 and img.shape[0] < img.shape[2]: # likely (C, Y, X)
+         img_input = np.transpose(img, (1, 2, 0))
+
+    masks, *_ = mdl.eval(img_input, **kwargs)
     return masks.astype(np.uint16)
 
 # ---------------- main ----------------
 
 def parse_args():
-    p = argparse.ArgumentParser(description="Segment channels selected by filename tokens (…A03f00dX.TIF).")
+    p = argparse.ArgumentParser(description="Segment channels (dual channel d3+d0 for d3).")
     p.add_argument("config", help="Path to YAML config.")
     # Optional CLI overrides (aligned with d0 / d3 naming)
     p.add_argument("--d0-model", type=str, default=None)
@@ -151,7 +168,7 @@ def main():
     print(f"[INFO] GPU available: {torch.cuda.is_available()}  |  Use GPU: {use_gpu}")
     print(f"[INFO] save.zstack={save_zstk}")
     print(f"[INFO] d0 -> model={d0_model} (flow,cellprob)=({d0_flow},{d0_prob})")
-    print(f"[INFO] d3 -> model={d3_model} (flow,cellprob)=({d3_flow},{d3_prob})")
+    print(f"[INFO] d3 -> model={d3_model} (flow,cellprob)=({d3_flow},{d3_prob}) [Dual Channel Mode]")
 
     for (rel_dir, prefix, well, site), chans in groups.items():
         if d0_ch not in chans or d3_ch not in chans:
@@ -171,13 +188,22 @@ def main():
         d0_arr = read_tiff_robust(d0_path)
         d3_arr = read_tiff_robust(d3_path)
 
-        # projection + normalize
-        d0_proj = normalize01(z_project(d0_arr, z_strategy))
-        d3_proj = normalize01(z_project(d3_arr, z_strategy))
+        # projection
+        d0_proj = z_project(d0_arr, z_strategy)
+        d3_proj = z_project(d3_arr, z_strategy)
 
-        # segment
-        d0_masks = run_cellpose(d0_proj, d0_model, use_gpu, d0_flow, d0_prob)
-        d3_masks = run_cellpose(d3_proj, d3_model, use_gpu, d3_flow, d3_prob)
+        # segment d0 (NUCLEI) - Single Channel
+        # Normalize d0 for single-channel segmentation
+        d0_norm = normalize01(d0_proj)
+        d0_masks = run_cellpose(d0_norm, d0_model, use_gpu, d0_flow, d0_prob)
+
+        # segment d3 (CELLS) - DUAL CHANNEL
+        # Cellpose v4+ is channel-order invariant and handles normalization internally.
+        # We pass RAW projected data (no pre-normalization) to avoid double normalization.
+        # Stack as (2, Y, X) -> run_cellpose transposes to (Y, X, 2).
+        # No 'channels' kwarg needed (deprecated in v4.0.1+).
+        d3_dual = np.stack([d3_proj, d0_proj], axis=0)
+        d3_masks = run_cellpose(d3_dual, d3_model, use_gpu, d3_flow, d3_prob)
 
         # output directory mirrors input
         sub_out = (out_dir / rel_dir)
